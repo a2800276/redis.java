@@ -12,6 +12,14 @@ import static redis.Constants.*;
 
 
 public class Reply {
+  enum Type {
+    MULTI,
+    BULK,
+    INT,
+    STATUS,
+    ERROR
+  }
+
   static Reply makeReply(byte indicator) {
     switch (indicator) {
       case ASTERISK:
@@ -28,6 +36,9 @@ public class Reply {
         throw new Protocol.ProtocolException("unexpected: "+(char)indicator);
     }
   }
+
+  Type type;
+
   /* indicate next arg in req or multibulk*/
   void next(){}
 
@@ -55,14 +66,25 @@ public class Reply {
     }
   }
   /** e.g. +OK */
-  static class StatusReply extends StringReply {}
+  static class StatusReply extends StringReply {
+    StatusReply() {
+      this.type = Type.STATUS;
+    }
+  }
 
   /** e.g. -Some error */
-  static class ErrorReply extends StringReply {}
+  static class ErrorReply extends StringReply {
+    ErrorReply () {
+      this.type = Type.ERROR;
+    }
+  }
 
   /** e.g. :1000 */
   static class IntegerReply extends Reply {
     int value;
+    IntegerReply() {
+      this.type = Type.INT;
+    }
     public void set(byte b){
       if (!numeric(b)) {
         throw new Protocol.ProtocolException("not numeric");
@@ -80,6 +102,9 @@ public class Reply {
   }
   static class BulkReply extends Reply {
     ByteList bytes;
+    BulkReply() {
+      this.type = Type.BULK;
+    }
     public void set(byte b) {
       this.bytes = bytes == null ? new ByteList(32) : this.bytes;
       this.bytes.add(b);
@@ -95,7 +120,11 @@ public class Reply {
     }
   }
   static class MultiBulkReply extends BulkReply {
+    
     List<byte[]> byteList;
+    MultiBulkReply () {
+      this.type = Type.MULTI;
+    }
     public void next(){
       this.byteList = null == this.byteList ? new LinkedList<byte[]>() : this.byteList;
       this.byteList.add(super.getValue());

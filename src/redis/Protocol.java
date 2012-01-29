@@ -26,12 +26,18 @@ public class Protocol {
     ,BULK
     ,LF_BULK_END
   }
+
   static class ProtocolException extends RuntimeException{
     ProtocolException(String mes) {super(mes);}
   }
 
   abstract static class CB {
     abstract void cb(Reply reply); 
+    void multibulk (Reply.MultiBulkReply mbr) { cb(mbr); }
+    void bulk (Reply.BulkReply br) { cb(br); }
+    void integer (Reply.IntegerReply ir) { cb(ir); }
+    void status (Reply.StatusReply sr) {cb(sr); }
+    void error (Reply.ErrorReply er) {cb(er); }
   }
 
   STATE state = STATE.INITIAL;
@@ -93,7 +99,7 @@ public class Protocol {
 
         case LF:
           check(b, LF);
-          cb.cb(this.reply);
+          cb();
           this.state = STATE.INITIAL;
           break;
 
@@ -150,7 +156,7 @@ public class Protocol {
         case LF_BULK_END:
           check(b, LF);
           if (0 == --this.numArgs) {
-            cb.cb(this.reply);
+            cb();
             this.state = STATE.INITIAL;
           } else {
             this.state = STATE.DOLLAR;
@@ -161,6 +167,28 @@ public class Protocol {
           throw new ProtocolException("unknown state:"+this.state);
           
       }
+    } // while
+  }
+
+  void cb () {
+    switch (this.reply.type) {
+      case MULTI:
+        this.cb.multibulk((Reply.MultiBulkReply)this.reply);
+        break;
+      case BULK:
+        this.cb.bulk((Reply.BulkReply)this.reply);
+        break;
+      case INT:
+        this.cb.integer((Reply.IntegerReply)this.reply);
+        break;
+      case STATUS:
+        this.cb.status((Reply.StatusReply)this.reply);
+        break;
+      case ERROR:
+        this.cb.error((Reply.ErrorReply)this.reply);
+        break;
+      default:
+        throw new ProtocolException("unknown reply type");
     }
   }
   public static void main (String [] args) {

@@ -23,7 +23,7 @@ machine calls every time a complete message has been received:
   }
 ```
 
-Next instatiate Protocol, passing in the callback and --optionally--
+Next instatiate `Protocol`, passing in the callback and --optionally--
 whether you're handling Requests or Replies:
 
 ```java
@@ -47,6 +47,35 @@ ByteBuffer:
   ByteBuffer buf = (... at your discretion ...)
   p.handleBytes(buf);
 ```
+
+### 'Your callback method suck!`
+
+The callback described above is more of a hello world than anything
+else. It describes the minimal implementation you need to do. In order
+to do anything useful you'll need to write callbacks for each of the 5
+reply types:
+
+```java
+  Protocol.CB cb = new Protocol.CB() {
+    public void multibulk (Reply.MultiBulkReply r) {
+      System.out.println(r.getEntries());
+    }
+    public void bulk (Reply.BulkReply r) {
+      System.out.println(r.getValue());
+    }
+    public void integer (Reply.IntegerReply r) {
+      System.out.println(r.getValue());
+    }
+    public void status (Reply.StatusReply r) {
+      System.out.println(r.getMessage());
+    }
+    public void error (Reply.ErrorReply r) {
+      System.out.println(r.getMessage());
+    }
+  }
+```
+
+
 
 
 ## getting started
