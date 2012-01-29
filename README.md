@@ -15,30 +15,38 @@ To use the library you need to create an instance of `Protocol.CB` that
 implements a `void cb(Reply reply)` callback method which the state
 machine calls every time a complete message has been received:
 
+```java
   Protocol.CB cb = new Protocol.CB() {
     public void cb (Reply r) {
       System.out.println(r);
     }
   }
+```
 
 Next instatiate Protocol, passing in the callback and --optionally--
 whether you're handling Requests or Replies:
 
+```java
   Protocol p = new Protocol(RequestReply.REQ, cb);
+```
 
 Finally, whenever you receive bytes from wherever you get them from,
 call the `handleBytes()` method of protocol:
 
+```java
   byte [] bs; (...)
   while (getMoreBytes(bs)) {
     p.handleBytes(bs);
   }
+```
 
 alternatively, in case you're dealing with nio, just pass in a
 ByteBuffer:
 
+```java
   ByteBuffer buf = (... at your discretion ...)
   p.handleBytes(buf);
+```
 
 
 ## getting started
