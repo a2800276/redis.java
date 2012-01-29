@@ -102,6 +102,8 @@ public class Reply {
   }
   static class BulkReply extends Reply {
     ByteList bytes;
+    boolean isNull;
+
     BulkReply() {
       this.type = Type.BULK;
     }
@@ -113,10 +115,11 @@ public class Reply {
       return true;
     }
     public byte[] getValue() {
+      if (isNull) return null;
       return this.bytes.toArray();
     }
     public String toString() {
-      return new String(this.getValue());
+      return isNull ? "null" : new String(this.getValue());
     }
   }
   static class MultiBulkReply extends BulkReply {
@@ -128,7 +131,8 @@ public class Reply {
     public void next(){
       this.byteList = null == this.byteList ? new LinkedList<byte[]>() : this.byteList;
       this.byteList.add(super.getValue());
-      this.bytes.clear();
+      if (null != this.bytes) this.bytes.clear();
+      this.isNull = false;
     }
     public List<byte[]> getEntries() {
       return this.byteList;
@@ -142,7 +146,8 @@ public class Reply {
         if (0 != buf.length()) {
           buf.append(':');
         }
-        buf.append(new String(bs));
+        buf.append(null == bs ? "null" : new String(bs));
+        //buf.append(new String(bs));
       }
       return buf.toString();
     }

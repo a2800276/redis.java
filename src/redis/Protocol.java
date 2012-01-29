@@ -18,6 +18,8 @@ public class Protocol {
      INITIAL
     ,NUMARGS
     ,LENGTH
+    ,LEN_NULL
+    ,LEN_NULL_CR
     ,COLLECT
     ,LF
     ,LF_DOLLAR
@@ -130,10 +132,25 @@ public class Protocol {
           if (numeric(b)) {
             this.length *= 10;
             this.length += b - 0x30;
+          } else if ( MINUS == b && 0 == this.length) { 
+            this.state = STATE.LEN_NULL;
+            this.length = -1;
           } else {
             check(b, CR);
             this.state = STATE.LF_BULK;
           }
+          break;
+
+        case LEN_NULL:
+          check(b, (byte)'1');
+          ((Reply.BulkReply)reply).isNull = true;
+          this.reply.next();
+          this.state = STATE.LEN_NULL_CR;
+          break;
+
+        case LEN_NULL_CR:
+          check(b, CR);
+          this.state = STATE.LF_BULK_END;
           break;
 
         case LF_BULK:
@@ -142,8 +159,8 @@ public class Protocol {
           break;
 
         case BULK:
-          assert(-1 < this.length);
-
+          assert(-2 < this.length);
+           
           if (0 == this.length) {
             check(b, CR);
             this.reply.next();
@@ -193,11 +210,15 @@ public class Protocol {
     }
   }
   public static void main (String [] args) {
+
     byte [] bs = "*3\r\n$3\r\nSET\r\n$5\r\nmykey\r\n$7\r\nmyvalue\r\n*3\r\n$3\r\nSET\r\n$5\r\nmykey\r\n$7\r\nmyvalue\r\n".getBytes();
     byte [] i  = ":1000\r\n".getBytes();
     byte [] ok  = "+OK\r\n".getBytes();
     byte [] nok  = "-NOK\r\n".getBytes();
     byte [] blk = "$4\r\nTEST\r\n".getBytes();
+    byte [] nul = "$-1\r\n".getBytes();
+    byte [] mbn = "*3\r\n$-1\r\n$3\r\nONE\r\n$3\r\nTWO\r\n".getBytes();
+
     CB cb = new CB () {
       public void cb (Reply r) {
         p(r);
@@ -209,6 +230,9 @@ public class Protocol {
     p.handleBytes(ok);
     p.handleBytes(nok);
     p.handleBytes(blk);
+    p.handleBytes(nul);
+    p.handleBytes(mbn);
+
   }
 
   static void p (Object o) {

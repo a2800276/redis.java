@@ -4,7 +4,7 @@ import java.util.Arrays;
 
 public class Utils {
   static boolean numeric (byte b) {
-    return (0x29 < b) && ( b < 0x40);
+    return (0x2F < b) && ( b < 0x3A);
   }
   
   /**

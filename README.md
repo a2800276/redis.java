@@ -75,7 +75,13 @@ reply types:
   }
 ```
 
+### Handling Errors
 
+The `error` callback described above only gets called when a proper
+error respone (i.e. -YOU SCREWED SOMETHING UP\r\n) is received from
+redis. In case there was an error handling the protocol, a
+`Protocol.ProtocolException` (extends RuntimeException) is thrown from
+`handleBytes`. You'll need to handle this.
 
 
 ## getting started
