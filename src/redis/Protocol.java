@@ -9,9 +9,9 @@ import static redis.Utils.numeric;
 
 public class Protocol {
 
-  enum RequestResponse {
+  enum RequestReply {
     REQ,
-    RES,
+    REPLY,
     EITHER
   }
   enum STATE {
@@ -41,7 +41,7 @@ public class Protocol {
   }
 
   STATE state = STATE.INITIAL;
-  RequestResponse rr = RequestResponse.EITHER;
+  RequestReply rr = RequestReply.EITHER;
   Reply reply;
   int numArgs;
   int length;
@@ -50,7 +50,7 @@ public class Protocol {
   public Protocol(CB cb) {
     this.cb = cb;
   }
-  public Protocol (RequestResponse r, CB cb) {
+  public Protocol (RequestReply r, CB cb) {
     this(cb);
     this.rr = r;
   }
@@ -58,21 +58,22 @@ public class Protocol {
   public void handleBytes (byte [] arr) {
     handleBytes(ByteBuffer.wrap(arr));    
   }
+  public void handleBytes (byte [] arr, int offset, int len) {
+    handleBytes(ByteBuffer.wrap(arr, offset, len));    
+  }
   public void handleBytes (ByteBuffer buf) {
     while (0 != buf.remaining()) {
-
-    
       byte b = buf.get();
       switch (this.state) {
         case INITIAL:
-          if (RequestResponse.REQ == this.rr) {
+          if (RequestReply.REQ == this.rr) {
             check(b, ASTERISK);
-          } else if (RequestResponse.RES == this.rr) {
-            check(b, RES);
+          } else if (RequestReply.REPLY == this.rr) {
+            check(b, REPLY);
           } else {
-            check(b, RES);
+            check(b, REPLY);
             if (ASTERISK != b) {
-              this.rr = RequestResponse.RES;
+              this.rr = RequestReply.REPLY;
             }
           }
           

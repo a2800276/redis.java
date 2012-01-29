@@ -12,9 +12,9 @@ public class Constants {
   static final byte LF       = (byte)'\n';
 
   static final byte [] CRLF  = {CR, LF};
-  static final byte [] RES   = {PLUS, MINUS, COLON, DOLLAR, ASTERISK};
+  static final byte [] REPLY = {PLUS, MINUS, COLON, DOLLAR, ASTERISK};
   static {
-    Arrays.sort(RES);
+    Arrays.sort(REPLY);
   }
 
 
