@@ -57,8 +57,6 @@ public class Protocol {
 
     
       byte b = buf.get();
-      p((char)b);
-      p(state);
       switch (this.state) {
         case INITIAL:
           if (RequestResponse.REQ == this.rr) {
