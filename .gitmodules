@@ -1,0 +1,3 @@
+[submodule "ext/primitive"]
+	path = ext/primitive
+	url = git@github.com:a2800276/primitive.git

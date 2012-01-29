@@ -1,7 +1,15 @@
 package redis;
 
+
+import java.util.List;
+import java.util.LinkedList;
+
+import primitive.collection.ByteList;
+
 import static redis.Utils.numeric;
 import static redis.Constants.*;
+
+
 
 public class Reply {
   static Reply makeReply(byte indicator) {
@@ -22,15 +30,17 @@ public class Reply {
   }
   /* indicate next arg in req or multibulk*/
   void next(){}
-  void set(byte b){
 
-  }
-  public boolean isBulk() {
+  /* collect the next byte, internal to sm */
+  void set(byte b){}
+
+  boolean isBulk() {
     return false;
   }
-  public boolean isMultibulk() {
+  boolean isMultibulk() {
     return false;
   }
+
   static class StringReply extends Reply {
     StringBuffer buf = new StringBuffer();
     public void set(byte b) {
@@ -39,9 +49,18 @@ public class Reply {
     public String getMessage() {
       return buf.toString();
     }
+
+    public String toString() {
+      return this.getClass()+" : "+this.getMessage();
+    }
   }
+  /** e.g. +OK */
   static class StatusReply extends StringReply {}
+
+  /** e.g. -Some error */
   static class ErrorReply extends StringReply {}
+
+  /** e.g. :1000 */
   static class IntegerReply extends Reply {
     int value;
     public void set(byte b){
@@ -54,13 +73,50 @@ public class Reply {
     public int getValue() {
       return value;
     }
+
+    public String toString () {
+      return this.getClass()+" : "+this.getValue();
+    }
   }
   static class BulkReply extends Reply {
+    ByteList bytes;
+    public void set(byte b) {
+      this.bytes = bytes == null ? new ByteList(32) : this.bytes;
+      this.bytes.add(b);
+    }
     public boolean isBulk() {
       return true;
     }
+    public byte[] getValue() {
+      return this.bytes.toArray();
+    }
+    public String toString() {
+      return new String(this.getValue());
+    }
   }
-  static class MultiBulkReply extends Reply {
+  static class MultiBulkReply extends BulkReply {
+    List<byte[]> byteList;
+    public void next(){
+      this.byteList = null == this.byteList ? new LinkedList<byte[]>() : this.byteList;
+      this.byteList.add(super.getValue());
+      this.bytes.clear();
+    }
+    public List<byte[]> getEntries() {
+      return this.byteList;
+    }
+    public String toString() {
+      if (null == this.byteList) {
+        return "";
+      }
+      StringBuilder buf = new StringBuilder();
+      for (byte[] bs : this.byteList){
+        if (0 != buf.length()) {
+          buf.append(':');
+        }
+        buf.append(new String(bs));
+      }
+      return buf.toString();
+    }
     public boolean isMultibulk() {
       return true;
     }

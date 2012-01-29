@@ -1,2 +1,2 @@
 
-java -cp classes redis.Protocol
+java -cp classes:ext/primitive/lib/primitives.jar redis.Protocol
