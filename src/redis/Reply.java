@@ -262,9 +262,16 @@ public abstract class Reply {
 
   static final byte[][]TYPE = new byte[0][];
 
-  public static byte[] encodeMultibulk (List<byte[]> bs) {
+  public static byte[] encodeMultibulk(List<byte[]> bs) {
     byte[][] bbs = bs.toArray(TYPE);
     return encodeMultibulk(bbs);
+  }
+  public static byte[] encodeMultibulkString(List<String> ss) {
+    List<byte[]> list = new LinkedList<byte[]>();
+    for (String s:ss) {
+      list.add(s.getBytes());
+    }
+    return encodeMultibulk(list);
   }
 
   public static byte[] encodeMultibulk(byte[][] bbs) {
@@ -300,4 +307,13 @@ public abstract class Reply {
     return encodeMultibulk(bbs, buf);
 
   }
+  
+  public static ByteBuffer encodeMultibulkString(List<String> ss, ByteBuffer buf) {
+    List<byte[]> list = new LinkedList<byte[]>();
+    for (String s : ss) {
+      list.add(s.getBytes());
+    }
+    return encodeMultibulk(list, buf);
+  }
+ 
 }
