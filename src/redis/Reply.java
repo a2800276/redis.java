@@ -3,6 +3,7 @@ package redis;
 
 import java.util.List;
 import java.util.LinkedList;
+import java.nio.ByteBuffer;
 
 import primitive.collection.ByteList;
 
@@ -11,7 +12,8 @@ import static redis.Constants.*;
 
 
 
-public class Reply {
+public abstract class Reply {
+
   enum Type {
     MULTI,
     BULK,
@@ -65,6 +67,7 @@ public class Reply {
       return this.getClass()+" : "+this.getMessage();
     }
   }
+
   /** e.g. +OK */
   static class StatusReply extends StringReply {
     StatusReply() {
@@ -81,7 +84,7 @@ public class Reply {
 
   /** e.g. :1000 */
   static class IntegerReply extends Reply {
-    int value;
+    long value;
     IntegerReply() {
       this.type = Type.INT;
     }
@@ -92,7 +95,7 @@ public class Reply {
       value *= 10;
       value += b - 0x30;
     }
-    public int getValue() {
+    public long getValue() {
       return value;
     }
 
@@ -100,6 +103,7 @@ public class Reply {
       return this.getClass()+" : "+this.getValue();
     }
   }
+
   static class BulkReply extends Reply {
     ByteList bytes;
     boolean isNull;
@@ -122,6 +126,7 @@ public class Reply {
       return isNull ? "null" : new String(this.getValue());
     }
   }
+
   static class MultiBulkReply extends BulkReply {
     
     List<byte[]> byteList;
@@ -154,5 +159,144 @@ public class Reply {
     public boolean isMultibulk() {
       return true;
     }
+  }
+  
+  static byte[] encode (String status, byte prfx) {
+    byte [] s = status.getBytes();
+    byte [] b = new byte[s.length + 3];
+    b[0] = prfx;
+    System.arraycopy(s, 0, b, 1, s.length);
+    System.arraycopy(CRLF, 0, b, s.length+1, 2);
+    return b;
+  }
+
+  static ByteBuffer encode (String status, ByteBuffer buf, byte prfx) {
+    if (null == buf) {
+      return ByteBuffer.wrap(encode(status, prfx));
+    }
+    buf.put(prfx);
+    for (byte b : status.getBytes()) {
+      buf.put(b);
+    }
+    buf.put(CRLF);
+    return buf;
+  }
+
+  public static byte [] encodeStatus (String status) {
+    return encode(status, PLUS);
+  }
+
+  public static ByteBuffer encodeStatus (String status, ByteBuffer buf) {
+    return encode(status, buf, PLUS);
+  }
+
+  public static byte [] encodeError (String status) {
+    return encode(status, MINUS);
+  }
+
+  public static ByteBuffer encodeError (String status, ByteBuffer buf) {
+    return encode(status, buf, MINUS);
+  }
+  
+  public static byte [] encodeInteger (long i) {
+    String s = Long.toString(i);
+    return encode(s, COLON);
+  }
+
+  public static ByteBuffer encodeInteger (long i, ByteBuffer buf) {
+    String s = Long.toString(i);
+    return encode(s, buf, COLON);
+  }
+  
+  public static byte [] encodeBulk (byte[] bs) {
+    byte [] ll = lenbytes(bs);
+    int len = ll.length + bs.length + 3; // $ CRLF 
+    if (null != bs) {
+      len += 2;  // bs CRLF
+    }
+
+    byte [] ret = new byte[len];
+    ret[0] = DOLLAR;
+    System.arraycopy(ll,   0, ret, 1, ll.length);
+    System.arraycopy(CRLF, 0, ret, ll.length+1, 2);
+    if (null != bs) {
+      System.arraycopy(bs, 0, ret, ll.length + 3, bs.length);
+      System.arraycopy(CRLF, 0, ret, ret.length-2, 2);
+    }
+    return bs;
+  }
+
+  public static byte [] encodeBulk (String s) {
+    return null == s ? encodeBulk((byte[])null) : encodeBulk(s.getBytes());
+  }
+
+  public static ByteBuffer encodeBulk (byte[] bs, ByteBuffer buf) {
+    if (null == buf) {
+      return ByteBuffer.wrap(encodeBulk(bs));
+    }
+    buf.put(DOLLAR);
+    buf.put(lenbytes(bs));
+    buf.put(CRLF);
+    if (null != bs) {
+      buf.put(bs);
+      buf.put(CRLF);
+    }
+    return buf;
+  }
+
+  public static ByteBuffer encodeBulk(String s, ByteBuffer buf) {
+    return null == s ? encodeBulk((byte[])null, buf) : encodeBulk(s.getBytes(), buf);
+  }
+
+  static final byte[][]TYPE = new byte[0][];
+
+  public static byte[] encodeMultibulk (List<byte[]> bs) {
+    byte[][] bbs = bs.toArray(TYPE);
+    return encodeMultibulk(bbs);
+  }
+  
+  static final byte[] MINUS1 = { MINUS, 0x31 };
+  static byte[] lenbytes (byte[] bs) {
+    if (null == bs) {
+      return MINUS1;
+    }
+    return Integer.toString(bs.length).getBytes();
+  }
+  static byte[] lenbytes (Object[] bs) {
+    return Integer.toString(bs.length).getBytes();
+  }
+
+  public static byte[] encodeMultibulk(byte[][] bbs) {
+    ByteList list = new ByteList(bbs.length * 10);
+    list.add(ASTERISK);
+    list.add(lenbytes(bbs));
+    list.add(CRLF);
+    for (byte [] bs : bbs) {
+      list.add(DOLLAR);
+      list.add(lenbytes(bs));
+      list.add(CRLF);
+      list.add(bs);
+      list.add(CRLF);
+    }
+    return list.toArray();
+  }
+
+  public static ByteBuffer encodeMultibulk(byte [][] bbs, ByteBuffer buf) {
+    if (null == buf) {
+      return ByteBuffer.wrap(encodeMultibulk(bbs));
+    }
+    buf.put(DOLLAR);
+    buf.put(lenbytes(bbs));
+    buf.put(CRLF);
+    for (byte [] bs : bbs) {
+      encodeBulk(bs, buf);
+    }
+    return buf;
+  }
+
+  public static ByteBuffer encodeMultibulk(List<byte[]> bs, ByteBuffer buf) {
+    byte[][] bbs = bs.toArray(TYPE);
+    return encodeMultibulk(bbs, buf);
+
   }
 }
