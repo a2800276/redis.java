@@ -9,7 +9,7 @@ import static redis.Utils.numeric;
 
 public class Protocol {
 
-  enum RequestReply {
+  public enum RequestReply {
     REQ,
     REPLY,
     EITHER
@@ -29,17 +29,17 @@ public class Protocol {
     ,LF_BULK_END
   }
 
-  static class ProtocolException extends RuntimeException{
+  public static class ProtocolException extends RuntimeException{
     ProtocolException(String mes) {super(mes);}
   }
 
-  abstract static class CB {
-    abstract void cb(Reply reply); 
-    void multibulk (Reply.MultiBulkReply mbr) { cb(mbr); }
-    void bulk (Reply.BulkReply br) { cb(br); }
-    void integer (Reply.IntegerReply ir) { cb(ir); }
-    void status (Reply.StatusReply sr) {cb(sr); }
-    void error (Reply.ErrorReply er) {cb(er); }
+  public abstract static class CB {
+    public abstract void cb(Reply reply); 
+    public void multibulk (Reply.MultiBulkReply mbr) { cb(mbr); }
+    public void bulk (Reply.BulkReply br) { cb(br); }
+    public void integer (Reply.IntegerReply ir) { cb(ir); }
+    public void status (Reply.StatusReply sr) {cb(sr); }
+    public void error (Reply.ErrorReply er) {cb(er); }
   }
 
   STATE state = STATE.INITIAL;

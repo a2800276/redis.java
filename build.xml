@@ -41,7 +41,7 @@
 </target>
 
 <target name="doc">
-  <javadoc sourcepath="src/java" destdir="doc">  
+  <javadoc sourcepath="src/" destdir="doc" package="yes">  
 	</javadoc>
 </target>
 

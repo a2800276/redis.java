@@ -2,6 +2,8 @@ package redis;
 
 import java.util.Arrays;
 
+import static redis.Constants.*;
+
 public class Utils {
   static boolean numeric (byte b) {
     return (0x2F < b) && ( b < 0x3A);
@@ -19,5 +21,16 @@ public class Utils {
     if (is != should) {
       throw new Protocol.ProtocolException("byte is: "+is+"("+((char)is)+") should be:"+should+"("+((char)should)+")");
     }
+  }
+
+  static final byte[] MINUS1 = { MINUS, 0x31 };
+  static byte[] lenbytes (byte[] bs) {
+    if (null == bs) {
+      return MINUS1;
+    }
+    return Integer.toString(bs.length).getBytes();
+  }
+  static byte[] lenbytes (Object[] bs) {
+    return Integer.toString(bs.length).getBytes();
   }
 }

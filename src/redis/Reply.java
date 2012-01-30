@@ -8,6 +8,7 @@ import java.nio.ByteBuffer;
 import primitive.collection.ByteList;
 
 import static redis.Utils.numeric;
+import static redis.Utils.lenbytes;
 import static redis.Constants.*;
 
 
@@ -56,6 +57,7 @@ public abstract class Reply {
 
   static class StringReply extends Reply {
     StringBuffer buf = new StringBuffer();
+    
     public void set(byte b) {
       buf.append((char)b);
     }
@@ -69,25 +71,27 @@ public abstract class Reply {
   }
 
   /** e.g. +OK */
-  static class StatusReply extends StringReply {
+  public static class StatusReply extends StringReply {
     StatusReply() {
       this.type = Type.STATUS;
     }
   }
 
   /** e.g. -Some error */
-  static class ErrorReply extends StringReply {
+  public static class ErrorReply extends StringReply {
     ErrorReply () {
       this.type = Type.ERROR;
     }
   }
 
   /** e.g. :1000 */
-  static class IntegerReply extends Reply {
+  public static class IntegerReply extends Reply {
     long value;
+    
     IntegerReply() {
       this.type = Type.INT;
     }
+
     public void set(byte b){
       if (!numeric(b)) {
         throw new Protocol.ProtocolException("not numeric");
@@ -95,6 +99,7 @@ public abstract class Reply {
       value *= 10;
       value += b - 0x30;
     }
+
     public long getValue() {
       return value;
     }
@@ -104,44 +109,51 @@ public abstract class Reply {
     }
   }
 
-  static class BulkReply extends Reply {
+  public static class BulkReply extends Reply {
     ByteList bytes;
     boolean isNull;
 
     BulkReply() {
       this.type = Type.BULK;
     }
+
     public void set(byte b) {
       this.bytes = bytes == null ? new ByteList(32) : this.bytes;
       this.bytes.add(b);
     }
+
     public boolean isBulk() {
       return true;
     }
+
     public byte[] getValue() {
       if (isNull) return null;
       return this.bytes.toArray();
     }
+
     public String toString() {
       return isNull ? "null" : new String(this.getValue());
     }
   }
 
-  static class MultiBulkReply extends BulkReply {
-    
+  public static class MultiBulkReply extends BulkReply {
     List<byte[]> byteList;
+
     MultiBulkReply () {
       this.type = Type.MULTI;
     }
+
     public void next(){
       this.byteList = null == this.byteList ? new LinkedList<byte[]>() : this.byteList;
       this.byteList.add(super.getValue());
       if (null != this.bytes) this.bytes.clear();
       this.isNull = false;
     }
+
     public List<byte[]> getEntries() {
       return this.byteList;
     }
+
     public String toString() {
       if (null == this.byteList) {
         return "";
@@ -253,17 +265,6 @@ public abstract class Reply {
   public static byte[] encodeMultibulk (List<byte[]> bs) {
     byte[][] bbs = bs.toArray(TYPE);
     return encodeMultibulk(bbs);
-  }
-  
-  static final byte[] MINUS1 = { MINUS, 0x31 };
-  static byte[] lenbytes (byte[] bs) {
-    if (null == bs) {
-      return MINUS1;
-    }
-    return Integer.toString(bs.length).getBytes();
-  }
-  static byte[] lenbytes (Object[] bs) {
-    return Integer.toString(bs.length).getBytes();
   }
 
   public static byte[] encodeMultibulk(byte[][] bbs) {
